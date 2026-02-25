@@ -15,6 +15,8 @@ using CofreeTest: schedule_tree, run_tree, EventBus, CollectorSubscriber, subscr
         scheduled = schedule_tree(tree)
         @test extract(scheduled) isa Scheduled
         @test extract(scheduled).executor == :inline
+        @test extract(scheduled).priority == Inf  # default with no history
+        @test extract(scheduled.tail[1]).priority == Inf
         @test length(scheduled.tail) == 2
     end
 

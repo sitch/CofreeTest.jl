@@ -82,8 +82,10 @@ using CofreeTest: EventBus, CollectorSubscriber, subscribe!
             @check_skip "not ready"
         end
 
-        # check_skip emits a LogEvent
+        # check_skip emits a LogEvent with level and message
         @test length(collector.events) == 1
         @test collector.events[1] isa LogEvent
+        @test collector.events[1].level == :skip
+        @test collector.events[1].message == "not ready"
     end
 end

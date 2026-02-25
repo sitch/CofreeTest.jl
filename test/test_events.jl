@@ -32,8 +32,16 @@ using CofreeTest: EventBus, emit!, subscribe!, CollectorSubscriber
 
         @test length(collector.events) == 3
         @test collector.events[1] isa SuiteStarted
+        @test collector.events[1].name == "test"
+        @test collector.events[1].timestamp == 1.0
         @test collector.events[2] isa TestStarted
+        @test collector.events[2].name == "t1"
+        @test collector.events[2].worker_id == 1
+        @test collector.events[2].timestamp == 2.0
         @test collector.events[3] isa TestFinished
+        @test collector.events[3].name == "t1"
+        @test collector.events[3].outcome isa Pass
+        @test collector.events[3].timestamp == 3.0
     end
 
     @testset "EventBus multiple subscribers" begin

@@ -51,10 +51,11 @@ function Test.record(ts::CofreeTestSet, result::Test.Error)
 end
 
 function Test.record(ts::CofreeTestSet, result::Test.Broken)
+    source = hasproperty(result, :source) ? something(result.source, LineNumberNode(0, :unknown)) : LineNumberNode(0, :unknown)
     emit!(ts.bus, AssertionPassed(
         something(result.orig_expr, :unknown),
         :broken,
-        something(result.source, LineNumberNode(0, :unknown)),
+        source,
         time()
     ))
     result

@@ -32,13 +32,16 @@ using CofreeTest: InlineExecutor, ProcessExecutor, TaskExecutor, execute!, Event
             end,
         )
         bus = EventBus()
+        collector = CollectorSubscriber()
+        subscribe!(bus, collector)
         exec = InlineExecutor()
         outcome, metrics, io = execute!(exec, spec, bus)
 
         # The executor returns Pass because the body evaluates without throwing.
-        # The failure is recorded as an event, not an exception.
-        # This is by design — the runner checks events for outcome determination.
-        @test outcome isa Pass || outcome isa Fail
+        # The failure is recorded as an AssertionFailed event.
+        @test outcome isa Pass
+        @test outcome.value == false  # @check 1==2 returns false
+        @test any(e -> e isa AssertionFailed, collector.events)
     end
 
     @testset "InlineExecutor — error test" begin

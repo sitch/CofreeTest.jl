@@ -36,9 +36,12 @@ using CofreeTest
         result_tree = runtests(tree; io, color=false)
 
         @test extract(result_tree.tail[1]).outcome isa Pass
-        # The fail test — @check 1 == 2 emits AssertionFailed but body still returns false
-        # Check if we get a meaningful result
-        @test extract(result_tree.tail[2]) isa TestResult
+        # The fail test — @check 1 == 2 emits AssertionFailed but body returns false
+        # Executor wraps in Pass(false) since no exception was thrown
+        result = extract(result_tree.tail[2])
+        @test result isa TestResult
+        @test result.outcome isa Pass
+        @test result.outcome.value == false
     end
 
     @testset "End-to-end: define → schedule → execute → format" begin
@@ -66,13 +69,17 @@ using CofreeTest
         @test extract(result_tree) isa TestResult
         @test extract(result_tree).spec.name == "e2e"
 
-        # All leaf tests should pass
-        for child in result_tree.tail
-            r = extract(child)
+        # All leaf tests should pass (recursive check including nested suites)
+        function assert_all_leaves_pass(tree)
+            r = extract(tree)
             if r.spec.body !== nothing
                 @test r.outcome isa Pass
             end
+            for child in tree.tail
+                assert_all_leaves_pass(child)
+            end
         end
+        assert_all_leaves_pass(result_tree)
 
         # Verify terminal output
         output = String(take!(io))

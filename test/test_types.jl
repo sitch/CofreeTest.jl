@@ -51,6 +51,10 @@ using CofreeTest
         @test spec.name == "my test"
         @test :unit in spec.tags
         @test spec.body isa Expr
+        @test spec.setup === nothing
+        @test spec.teardown === nothing
+        @test spec.source.line == 10
+        @test spec.source.file == Symbol("test.jl")
     end
 
     @testset "Scheduled" begin

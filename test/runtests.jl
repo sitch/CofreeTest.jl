@@ -9,4 +9,6 @@ using Test
     include("test_macros.jl")
     include("test_executor.jl")
     include("test_runner.jl")
+    include("test_formatter.jl")
+    include("test_terminal_components.jl")
 end

@@ -17,6 +17,10 @@ include("Filter.jl")
 include("Macros.jl")
 include("executors/Abstract.jl")
 include("executors/Inline.jl")
+include("formatters/Abstract.jl")
+include("formatters/TerminalComponents.jl")
+include("formatters/Dot.jl")
+include("formatters/Terminal.jl")
 include("Schedule.jl")
 include("Runner.jl")
 
@@ -29,5 +33,6 @@ export AssertionPassed, AssertionFailed, LogEvent, ProgressEvent
 export TestFilter
 export @check, @check_throws, @check_broken, @check_skip, with_bus
 export AbstractExecutor, InlineExecutor, execute!
+export AbstractFormatter, DotFormatter, TerminalFormatter
 
 end # module

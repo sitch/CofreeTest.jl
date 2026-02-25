@@ -7,4 +7,6 @@ using Test
     include("test_discovery.jl")
     include("test_filter.jl")
     include("test_macros.jl")
+    include("test_executor.jl")
+    include("test_runner.jl")
 end

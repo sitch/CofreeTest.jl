@@ -15,6 +15,10 @@ include("Events.jl")
 include("Discovery.jl")
 include("Filter.jl")
 include("Macros.jl")
+include("executors/Abstract.jl")
+include("executors/Inline.jl")
+include("Schedule.jl")
+include("Runner.jl")
 
 export Cofree, extract, duplicate, extend, fmap, hoist, leaf, suite
 export Outcome, Pass, Fail, Error, Skip, Pending, Timeout
@@ -24,5 +28,6 @@ export SuiteStarted, TestStarted, TestFinished, SuiteFinished
 export AssertionPassed, AssertionFailed, LogEvent, ProgressEvent
 export TestFilter
 export @check, @check_throws, @check_broken, @check_skip, with_bus
+export AbstractExecutor, InlineExecutor, execute!
 
 end # module

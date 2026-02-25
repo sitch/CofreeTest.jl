@@ -39,6 +39,10 @@ end
 function _make_executor(kind::Symbol)
     if kind == :inline
         InlineExecutor()
+    elseif kind == :process
+        ProcessExecutor(0)
+    elseif kind == :task
+        TaskExecutor(0)
     else
         Base.error("Executor :$kind not yet implemented")
     end

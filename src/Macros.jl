@@ -143,3 +143,97 @@ macro check_skip(reason)
         return  # exit the test body early
     end
 end
+
+# --- @suite macro (tree builder) ---
+
+"""
+    @suite name body
+    @suite name tags=[:tag1] body
+
+Define a test suite. Returns a `Cofree{Vector, TestSpec}` tree.
+The body can contain `@testcase` and nested `@suite` definitions.
+"""
+macro suite(name::String, args...)
+    _suite_impl(name, args, __source__)
+end
+
+function _suite_impl(name, args, source)
+    tags_expr = :(Set{Symbol}())
+    body = nothing
+
+    for arg in args
+        if arg isa Expr && arg.head == :(=) && arg.args[1] == :tags
+            tags_expr = :(Set{Symbol}($(arg.args[2])))
+        else
+            body = arg
+        end
+    end
+
+    body === nothing && Base.error("@suite requires a body block")
+    _suite_from_body(name, tags_expr, body, source)
+end
+
+function _suite_from_body(name, tags_expr, body, source)
+    children_exprs = Expr[]
+
+    if body isa Expr && body.head == :block
+        for stmt in body.args
+            if stmt isa Expr && stmt.head == :macrocall
+                macname = stmt.args[1]
+                if macname == Symbol("@testcase") || macname == Symbol("@suite")
+                    push!(children_exprs, stmt)
+                end
+            end
+        end
+    end
+
+    children_code = [esc(c) for c in children_exprs]
+
+    quote
+        local _spec = $TestSpec(
+            name = $name,
+            tags = $tags_expr,
+            source = $(QuoteNode(source)),
+        )
+        local _children = $Cofree[$(children_code...)]
+        $Cofree(_spec, _children)
+    end
+end
+
+# --- @testcase macro (leaf test definition) ---
+
+"""
+    @testcase name body
+    @testcase name tags=[:tag1] body
+
+Define a test leaf (used inside @suite). The body is captured as an
+expression and executed later by an executor.
+"""
+macro testcase(name::String, args...)
+    _testcase_impl(name, args, __source__)
+end
+
+function _testcase_impl(name, args, source)
+    tags_expr = :(Set{Symbol}())
+    body = nothing
+
+    for arg in args
+        if arg isa Expr && arg.head == :(=) && arg.args[1] == :tags
+            tags_expr = :(Set{Symbol}($(arg.args[2])))
+        else
+            body = arg
+        end
+    end
+
+    body === nothing && Base.error("@testcase requires a body block")
+
+    quote
+        local _spec = $TestSpec(
+            name = $name,
+            tags = $(esc(tags_expr)),
+            source = $(QuoteNode(source)),
+            body = $(QuoteNode(body)),
+        )
+        $leaf(_spec)
+    end
+end

@@ -1,6 +1,6 @@
 using Test
 using CofreeTest
-using CofreeTest: InlineExecutor, execute!, EventBus, CollectorSubscriber, subscribe!
+using CofreeTest: InlineExecutor, ProcessExecutor, TaskExecutor, execute!, EventBus, CollectorSubscriber, subscribe!, ExecutorPool, create_pool, teardown!
 
 @testset "Executors" begin
     @testset "InlineExecutor — passing test" begin
@@ -70,5 +70,45 @@ using CofreeTest: InlineExecutor, execute!, EventBus, CollectorSubscriber, subsc
         outcome, metrics, io = execute!(exec, spec, bus)
 
         @test contains(io.stdout, "hello from test")
+    end
+
+    @testset "ProcessExecutor — executes in separate process" begin
+        spec = TestSpec(
+            name="process test",
+            source=LineNumberNode(1, Symbol("test.jl")),
+            body=quote
+                1 + 1
+            end,
+        )
+        bus = EventBus()
+        exec = ProcessExecutor(1)
+        try
+            outcome, metrics, io = execute!(exec, spec, bus)
+            @test outcome isa Pass
+            @test metrics.time_s >= 0.0
+        finally
+            teardown!(exec)
+        end
+    end
+
+    @testset "ExecutorPool — creates pool of workers" begin
+        pool = create_pool(ProcessExecutor; njobs=2)
+        try
+            @test length(pool.executors) == 2
+        finally
+            teardown!(pool)
+        end
+    end
+
+    @testset "TaskExecutor — executes as green thread" begin
+        spec = TestSpec(
+            name="task test",
+            source=LineNumberNode(1, Symbol("test.jl")),
+            body=:(1 + 1),
+        )
+        bus = EventBus()
+        exec = TaskExecutor(1)
+        outcome, metrics, io = execute!(exec, spec, bus)
+        @test outcome isa Pass
     end
 end

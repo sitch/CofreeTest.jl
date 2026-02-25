@@ -17,6 +17,9 @@ include("Filter.jl")
 include("Macros.jl")
 include("executors/Abstract.jl")
 include("executors/Inline.jl")
+include("executors/Process.jl")
+include("executors/Pool.jl")
+include("executors/Task.jl")
 include("formatters/Abstract.jl")
 include("formatters/TerminalComponents.jl")
 include("formatters/Dot.jl")
@@ -35,8 +38,8 @@ export TestSpec, Scheduled, TestResult
 export SuiteStarted, TestStarted, TestFinished, SuiteFinished
 export AssertionPassed, AssertionFailed, LogEvent, ProgressEvent
 export TestFilter
-export @check, @check_throws, @check_broken, @check_skip, with_bus
-export AbstractExecutor, InlineExecutor, execute!
+export @check, @check_throws, @check_broken, @check_skip, @suite, @testcase, with_bus
+export AbstractExecutor, InlineExecutor, ProcessExecutor, TaskExecutor, execute!
 export AbstractFormatter, DotFormatter, TerminalFormatter, JSONFormatter, MultiFormatter
 export runtests
 

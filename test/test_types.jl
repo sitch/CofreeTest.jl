@@ -79,4 +79,23 @@ using CofreeTest
         @test extract(tree).name == "suite"
         @test extract(tree.tail[1]).name == "test1"
     end
+
+    @testset "TestSpec kwdef defaults" begin
+        spec = TestSpec(name="minimal")
+        @test spec.name == "minimal"
+        @test spec.tags == Set{Symbol}()
+        @test spec.source == LineNumberNode(0, :unknown)
+        @test spec.body === nothing
+        @test spec.setup === nothing
+        @test spec.teardown === nothing
+    end
+
+    @testset "TestResult with non-empty events" begin
+        spec = TestSpec(name="t")
+        metrics = Metrics(0.1, 512, 0.0, 0.0, 64.0)
+        events = TestEvent[SuiteStarted("s", LineNumberNode(1, :f), 1.0)]
+        result = TestResult(spec, Pass(true), 0.1, metrics, events, CapturedIO("", ""))
+        @test length(result.events) == 1
+        @test result.events[1] isa SuiteStarted
+    end
 end

@@ -107,4 +107,19 @@ end
         result = filter_tree(tree, f)
         @test result === nothing
     end
+
+    @testset "parse_test_args with empty tag value" begin
+        f = parse_test_args(["--tags="])
+        # Empty string becomes a Symbol
+        @test Symbol("") in f.tags
+    end
+
+    @testset "empty string name filter matches all" begin
+        tree = make_tree()
+        f = TestFilter(names=[""], tags=Set{Symbol}(), exclude_tags=Set{Symbol}())
+        result = filter_tree(tree, f)
+        @test !isnothing(result)
+        names = collect_names(result)
+        @test length(names) == 5  # empty string occursin any name
+    end
 end

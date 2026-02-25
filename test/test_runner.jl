@@ -163,4 +163,26 @@ using CofreeTest: schedule_tree, run_tree, EventBus, CollectorSubscriber, subscr
         output = String(take!(io))
         @test startswith(strip(output), "[")
     end
+
+    @testset "_aggregate_outcome — Fail with Pass (no Error)" begin
+        spec = TestSpec(name="t")
+        m = Metrics(0.0, 0, 0.0, 0.0, 0.0)
+        children = [
+            leaf(TestResult(spec, Pass(true), 0.0, m, TestEvent[], CapturedIO("", ""))),
+            leaf(TestResult(spec, Fail(:x, :a, :b, LineNumberNode(0, :f)), 0.0, m, TestEvent[], CapturedIO("", ""))),
+        ]
+        result = _aggregate_outcome(children)
+        @test result isa Fail
+    end
+
+    @testset "runtests with verbose=true" begin
+        tree = suite(
+            TestSpec(name="root"),
+            [leaf(TestSpec(name="t1", body=:(1 + 1)))]
+        )
+        io = IOBuffer()
+        runtests(tree; io, color=false, verbose=true)
+        output = String(take!(io))
+        @test contains(output, "t1")
+    end
 end

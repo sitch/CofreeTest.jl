@@ -1,6 +1,6 @@
 using Test
 using CofreeTest
-using CofreeTest: InlineExecutor, ProcessExecutor, TaskExecutor, execute!, EventBus, CollectorSubscriber, subscribe!, ExecutorPool, create_pool, teardown!, setup!, default_njobs
+using CofreeTest: InlineExecutor, ProcessExecutor, TaskExecutor, execute!, EventBus, CollectorSubscriber, subscribe!, ExecutorPool, create_pool, teardown!, setup!, default_njobs, recycle!
 
 @testset "Executors" begin
     @testset "InlineExecutor — passing test" begin
@@ -155,5 +155,16 @@ using CofreeTest: InlineExecutor, ProcessExecutor, TaskExecutor, execute!, Event
 
     @testset "default_njobs returns >= 1" begin
         @test default_njobs() >= 1
+    end
+
+    @testset "ProcessExecutor — recycle! respawns worker" begin
+        exec = ProcessExecutor(1)
+        try
+            @test exec.worker !== nothing
+            recycle!(exec)
+            @test exec.worker !== nothing  # worker alive after recycle
+        finally
+            teardown!(exec)
+        end
     end
 end

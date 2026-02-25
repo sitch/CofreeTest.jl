@@ -132,4 +132,10 @@ end
         @test fmt.durations[1] == 0.5
         @test fmt.durations[2] == 1.0
     end
+
+    @testset "verbose=true flag is set" begin
+        io = IOBuffer()
+        fmt = TerminalFormatter(io; verbose=true, color=false)
+        @test fmt.verbose == true
+    end
 end

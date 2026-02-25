@@ -22,6 +22,15 @@ function handle!(fmt::JSONFormatter, event::TestFinished)
     ))
 end
 
+function _json_escape(s::String)
+    s = replace(s, '\\' => "\\\\")
+    s = replace(s, '"' => "\\\"")
+    s = replace(s, '\n' => "\\n")
+    s = replace(s, '\t' => "\\t")
+    s = replace(s, '\r' => "\\r")
+    s
+end
+
 function finalize!(fmt::JSONFormatter)
     # Simple JSON serialization without dependency
     print(fmt.io, "[")
@@ -31,9 +40,9 @@ function finalize!(fmt::JSONFormatter)
         entries = sort(collect(pairs(r)); by=first)
         for (j, (k, v)) in enumerate(entries)
             j > 1 && print(fmt.io, ",")
-            print(fmt.io, "\"$k\":")
+            print(fmt.io, "\"$(_json_escape(string(k)))\":")
             if v isa String
-                print(fmt.io, "\"$v\"")
+                print(fmt.io, "\"$(_json_escape(v))\"")
             else
                 print(fmt.io, v)
             end

@@ -50,4 +50,21 @@ using CofreeTest: DotFormatter, handle!, finalize!, EventBus, CollectorSubscribe
         @test contains(output, "1 passed")
         @test contains(output, "1 failed")
     end
+
+    @testset "DotFormatter — finalize with all outcome types" begin
+        io = IOBuffer()
+        fmt = DotFormatter(io)
+        handle!(fmt, TestFinished("t1", Pass(true), Metrics(0.1, 0, 0.0, 0.0, 0.0), CapturedIO("", ""), 1.0))
+        handle!(fmt, TestFinished("t2", Fail(:e, 1, 2, LineNumberNode(1, :f)), Metrics(0.1, 0, 0.0, 0.0, 0.0), CapturedIO("", ""), 1.0))
+        handle!(fmt, TestFinished("t3", Error(ErrorException("x"), nothing), Metrics(0.1, 0, 0.0, 0.0, 0.0), CapturedIO("", ""), 1.0))
+        handle!(fmt, TestFinished("t4", Skip("r"), Metrics(0.0, 0, 0.0, 0.0, 0.0), CapturedIO("", ""), 1.0))
+        take!(io)  # clear dots/chars
+        finalize!(fmt)
+        output = String(take!(io))
+        @test contains(output, "4 tests")
+        @test contains(output, "1 passed")
+        @test contains(output, "1 failed")
+        @test contains(output, "1 errored")
+        @test contains(output, "1 skipped")
+    end
 end

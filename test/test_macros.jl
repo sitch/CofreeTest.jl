@@ -168,6 +168,33 @@ using CofreeTest: EventBus, CollectorSubscriber, subscribe!
         @test evt.expected == 5
     end
 
+    @testset "@check with non-comparison boolean expressions" begin
+        bus = EventBus()
+        collector = CollectorSubscriber()
+        subscribe!(bus, collector)
+
+        CofreeTest.with_bus(bus) do
+            @check isempty([])
+            @check startswith("abc", "a")
+        end
+
+        @test length(collector.events) == 2
+        @test all(e -> e isa AssertionPassed, collector.events)
+    end
+
+    @testset "@check_throws catches parent exception type" begin
+        bus = EventBus()
+        collector = CollectorSubscriber()
+        subscribe!(bus, collector)
+
+        result = CofreeTest.with_bus(bus) do
+            @check_throws Exception error("boom")
+        end
+
+        @test result == true
+        @test collector.events[1] isa AssertionPassed
+    end
+
     @testset "current_bus outside context throws" begin
         @test_throws ErrorException CofreeTest.current_bus()
     end

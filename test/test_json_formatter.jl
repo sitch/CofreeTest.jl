@@ -89,14 +89,21 @@ end
         @test count('}', output) == 3
     end
 
-    @testset "handle! — string with quotes not escaped (known bug)" begin
+    @testset "handle! — string with quotes is properly escaped" begin
         io = IOBuffer()
         fmt = JSONFormatter(io)
         handle!(fmt, make_test_finished(name="test with \"quotes\""))
         finalize!(fmt)
         output = String(take!(io))
-        # The hand-rolled serializer doesn't escape quotes, so the output
-        # will have unescaped quotes inside the string value — malformed JSON
-        @test_broken !contains(output, "\"test with \"quotes\"\"")
+        @test contains(output, "test with \\\"quotes\\\"")
+    end
+
+    @testset "handle! — string with special characters escaped" begin
+        io = IOBuffer()
+        fmt = JSONFormatter(io)
+        handle!(fmt, make_test_finished(name="line1\nline2\ttab\\back"))
+        finalize!(fmt)
+        output = String(take!(io))
+        @test contains(output, "line1\\nline2\\ttab\\\\back")
     end
 end

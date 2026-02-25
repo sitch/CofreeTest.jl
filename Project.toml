@@ -7,6 +7,8 @@ version = "0.1.0"
 Malt = "36869731-bdee-424d-aa32-cab38c994e3b"
 IOCapture = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
 Scratch = "6c6a2e73-6563-6170-7368-637461726353"
+Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 julia = "1.10"
@@ -14,8 +16,3 @@ Malt = "1.4"
 IOCapture = "1"
 Scratch = "1"
 
-[extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[targets]
-test = ["Test"]

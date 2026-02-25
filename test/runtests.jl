@@ -11,4 +11,6 @@ using Test
     include("test_runner.jl")
     include("test_formatter.jl")
     include("test_terminal_components.jl")
+    include("test_compat.jl")
+    include("test_integration.jl")
 end

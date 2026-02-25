@@ -62,3 +62,69 @@ function _aggregate_metrics(children::Vector)
     max_rss = maximum(extract(c).metrics.rss_mb for c in children; init=0.0)
     Metrics(total_time, total_bytes, total_gc, gc_pct, max_rss)
 end
+
+# --- runtests entry point ---
+
+"""
+    runtests(tree::Cofree; kwargs...) -> Cofree{F, TestResult}
+
+Run a test tree end-to-end: schedule → execute → format.
+
+# Keywords
+- `io::IO = stdout` — output destination
+- `color::Bool = true` — enable ANSI colors
+- `formatter::Symbol = :terminal` — `:terminal`, `:dot`, `:json`
+- `executor::Symbol = :inline` — `:inline`, `:task`, `:process`
+- `history::Dict{String,Float64} = Dict()` — historical durations for scheduling
+- `verbose::Bool = false` — show passing tests in detail
+"""
+function runtests(tree::Cofree;
+    io::IO = stdout,
+    color::Bool = get(io, :color, true),
+    formatter::Symbol = :terminal,
+    executor::Symbol = :inline,
+    history::Dict{String, Float64} = Dict{String, Float64}(),
+    verbose::Bool = false,
+)
+    # 1. Schedule
+    scheduled = schedule_tree(tree; executor, history)
+
+    # 2. Set up event bus with formatter
+    bus = EventBus()
+    fmt = _make_formatter(formatter, io; color, verbose)
+    subscribe!(bus, fmt)
+
+    # Count total leaf tests
+    total = _count_leaves(tree)
+    if fmt isa TerminalFormatter
+        start!(fmt, total)
+    end
+
+    # 3. Execute
+    result_tree = run_tree(scheduled, bus)
+
+    # 4. Finalize formatter
+    finalize!(fmt)
+
+    result_tree
+end
+
+function _make_formatter(kind::Symbol, io::IO; color::Bool, verbose::Bool)
+    if kind == :terminal
+        TerminalFormatter(io; color, verbose)
+    elseif kind == :dot
+        DotFormatter(io)
+    elseif kind == :json
+        JSONFormatter(io)
+    else
+        Base.error("Unknown formatter: $kind")
+    end
+end
+
+function _count_leaves(tree::Cofree)::Int
+    spec = extract(tree)
+    if isempty(tree.tail) && spec isa TestSpec && spec.body !== nothing
+        return 1
+    end
+    sum(_count_leaves(c) for c in tree.tail; init=0)
+end

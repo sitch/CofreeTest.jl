@@ -21,8 +21,12 @@ include("formatters/Abstract.jl")
 include("formatters/TerminalComponents.jl")
 include("formatters/Dot.jl")
 include("formatters/Terminal.jl")
+include("formatters/Json.jl")
+include("formatters/Multi.jl")
 include("Schedule.jl")
 include("Runner.jl")
+include("Compat.jl")
+include("History.jl")
 
 export Cofree, extract, duplicate, extend, fmap, hoist, leaf, suite
 export Outcome, Pass, Fail, Error, Skip, Pending, Timeout
@@ -33,6 +37,7 @@ export AssertionPassed, AssertionFailed, LogEvent, ProgressEvent
 export TestFilter
 export @check, @check_throws, @check_broken, @check_skip, with_bus
 export AbstractExecutor, InlineExecutor, execute!
-export AbstractFormatter, DotFormatter, TerminalFormatter
+export AbstractFormatter, DotFormatter, TerminalFormatter, JSONFormatter, MultiFormatter
+export runtests
 
 end # module

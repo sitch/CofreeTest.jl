@@ -62,4 +62,61 @@ using CofreeTest: box, progress_bar, spinner_frame, bar_chart,
         @test color_for_duration(0.5) == :yellow
         @test color_for_duration(2.0) == :red
     end
+
+    @testset "sparkline — empty vector" begin
+        @test sparkline(Float64[]) == ""
+    end
+
+    @testset "sparkline — all same value" begin
+        result = sparkline([5.0, 5.0, 5.0])
+        @test length(result) == 3
+        # When all values are same, uses middle char (index 4)
+        @test all(c -> c == '▄', result)
+    end
+
+    @testset "progress_bar — zero total" begin
+        result = progress_bar(0, 0; width=20)
+        @test contains(result, "0/0")
+        @test contains(result, "0%")
+    end
+
+    @testset "dot_leader — overflow (left + right > width)" begin
+        result = dot_leader("very long left name here", "very long right"; width=20)
+        # Should still have at least 1 dot
+        @test contains(result, "·")
+    end
+
+    @testset "box — empty lines" begin
+        result = box("Empty", String[]; width=40)
+        @test startswith(result, " ╭")
+        @test contains(result, "╰")
+    end
+
+    @testset "box — oversized line truncation" begin
+        long_line = repeat("x", 200)
+        result = box("Test", [long_line]; width=40)
+        @test contains(result, "╭")
+        @test contains(result, "╯")
+    end
+
+    @testset "format_bytes — boundary values" begin
+        @test format_bytes(0) == "0 B"
+        @test format_bytes(1024) == "1.0 KB"
+    end
+
+    @testset "format_duration — boundary values" begin
+        @test format_duration(0.0) == "0ms"
+        @test format_duration(60.0) == "1m 00s"
+    end
+
+    @testset "bar_chart — max_value zero" begin
+        result = bar_chart(5, 0; width=10)
+        @test length(result) == 10
+        @test result == " " ^ 10
+    end
+
+    @testset "bar_chart — value exceeds max (clamp)" begin
+        result = bar_chart(15, 10; width=10)
+        @test contains(result, "█")
+    end
 end

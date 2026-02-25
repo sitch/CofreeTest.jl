@@ -56,4 +56,30 @@ using CofreeTest: EventBus, emit!, subscribe!, CollectorSubscriber
         @test length(c1.events) == 1
         @test length(c2.events) == 1
     end
+
+    @testset "LogEvent construction" begin
+        le = LogEvent(:info, "hello world", 42.0)
+        @test le.level == :info
+        @test le.message == "hello world"
+        @test le.timestamp == 42.0
+    end
+
+    @testset "ProgressEvent construction" begin
+        pe = ProgressEvent(5, 10, 99.0)
+        @test pe.completed == 5
+        @test pe.total == 10
+        @test pe.timestamp == 99.0
+    end
+
+    @testset "EventBus emit with no subscribers — no error" begin
+        bus = EventBus()
+        emit!(bus, SuiteStarted("test", LineNumberNode(1, :f), 1.0))
+        @test true
+    end
+
+    @testset "SuiteFinished construction" begin
+        sf = SuiteFinished("done", 5.0)
+        @test sf.name == "done"
+        @test sf.timestamp == 5.0
+    end
 end

@@ -43,4 +43,28 @@ using CofreeTest: extract, Cofree
         @test extract(tree.tail[1]).name == "inner"
         @test extract(tree.tail[1].tail[1]).name == "deep"
     end
+
+    @testset "@testcase with tags" begin
+        tree = @suite "root" begin
+            @testcase "tagged" tags=[:slow, :api] begin
+                @check true
+            end
+        end
+
+        @test :slow in extract(tree.tail[1]).tags
+        @test :api in extract(tree.tail[1]).tags
+    end
+
+    @testset "non-macro statements in @suite body are ignored" begin
+        tree = @suite "root" begin
+            x = 42
+            @testcase "only child" begin
+                @check true
+            end
+            y = 99
+        end
+
+        @test length(tree.tail) == 1
+        @test extract(tree.tail[1]).name == "only child"
+    end
 end

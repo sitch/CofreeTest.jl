@@ -84,4 +84,38 @@ using CofreeTest: Cofree, extract, duplicate, extend, fmap, hoist, leaf, suite
         @test extract(left) == extract(right)
         @test extract(left.tail[1]) == extract(right.tail[1])
     end
+
+    @testset "fmap over Tuple" begin
+        children = (leaf(1), leaf(2))
+        result = fmap(c -> Cofree(extract(c) * 10, c.tail), children)
+        @test result isa Tuple
+        @test extract(result[1]) == 10
+        @test extract(result[2]) == 20
+    end
+
+    @testset "leaf(nothing)" begin
+        l = leaf(nothing)
+        @test extract(l) === nothing
+        @test isempty(l.tail)
+    end
+
+    @testset "suite with empty children" begin
+        s = suite("root", Cofree[])
+        @test extract(s) == "root"
+        @test isempty(s.tail)
+    end
+
+    @testset "duplicate on leaf" begin
+        l = leaf(42)
+        d = duplicate(l)
+        @test extract(d) === l
+        @test isempty(d.tail)
+    end
+
+    @testset "extend on leaf" begin
+        l = leaf(10)
+        result = extend(c -> extract(c) * 2, l)
+        @test extract(result) == 20
+        @test isempty(result.tail)
+    end
 end

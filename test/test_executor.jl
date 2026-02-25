@@ -1,6 +1,6 @@
 using Test
 using CofreeTest
-using CofreeTest: InlineExecutor, ProcessExecutor, TaskExecutor, execute!, EventBus, CollectorSubscriber, subscribe!, ExecutorPool, create_pool, teardown!
+using CofreeTest: InlineExecutor, ProcessExecutor, TaskExecutor, execute!, EventBus, CollectorSubscriber, subscribe!, ExecutorPool, create_pool, teardown!, setup!, default_njobs
 
 @testset "Executors" begin
     @testset "InlineExecutor — passing test" begin
@@ -113,5 +113,47 @@ using CofreeTest: InlineExecutor, ProcessExecutor, TaskExecutor, execute!, Event
         exec = TaskExecutor(1)
         outcome, metrics, io = execute!(exec, spec, bus)
         @test outcome isa Pass
+    end
+
+    @testset "ProcessExecutor — error in test body" begin
+        spec = TestSpec(
+            name="process error",
+            source=LineNumberNode(1, Symbol("test.jl")),
+            body=:(error("kaboom")),
+        )
+        bus = EventBus()
+        exec = ProcessExecutor(1)
+        try
+            outcome, metrics, io = execute!(exec, spec, bus)
+            @test outcome isa Error
+        finally
+            teardown!(exec)
+        end
+    end
+
+    @testset "ProcessExecutor — setup!/teardown! lifecycle" begin
+        exec = ProcessExecutor(1)
+        teardown!(exec)
+        @test exec.worker === nothing
+        setup!(exec)
+        @test exec.worker !== nothing
+        teardown!(exec)
+        @test exec.worker === nothing
+    end
+
+    @testset "TaskExecutor — error in test body" begin
+        spec = TestSpec(
+            name="task error",
+            source=LineNumberNode(1, Symbol("test.jl")),
+            body=:(error("kaboom")),
+        )
+        bus = EventBus()
+        exec = TaskExecutor(1)
+        outcome, metrics, io = execute!(exec, spec, bus)
+        @test outcome isa Error
+    end
+
+    @testset "default_njobs returns >= 1" begin
+        @test default_njobs() >= 1
     end
 end

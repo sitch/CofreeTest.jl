@@ -85,4 +85,26 @@ end
         names = collect_names(result)
         @test length(names) == 5  # all 5 named nodes (excl root)
     end
+
+    @testset "filter prunes entire tree" begin
+        tree = make_tree()
+        f = TestFilter(names=["nonexistent_test_xyz"], tags=Set{Symbol}(), exclude_tags=Set{Symbol}())
+        result = filter_tree(tree, f)
+        @test result === nothing
+    end
+
+    @testset "parse_test_args with empty args" begin
+        f = parse_test_args(String[])
+        @test isempty(f.names)
+        @test isempty(f.tags)
+        @test isempty(f.exclude_tags)
+    end
+
+    @testset "overlapping tags and exclude_tags prunes everything" begin
+        tree = make_tree()
+        # require :unit but also exclude :unit — nothing should match
+        f = TestFilter(names=String[], tags=Set([:unit]), exclude_tags=Set([:unit]))
+        result = filter_tree(tree, f)
+        @test result === nothing
+    end
 end

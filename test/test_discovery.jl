@@ -32,4 +32,27 @@ using CofreeTest: is_test_file, discover_test_files
         files = discover_test_files(fixture_dir)
         @test issorted(files)
     end
+
+    @testset "is_test_file rejects non-.jl files" begin
+        @test is_test_file("test_auth.py") == false
+        @test is_test_file("test_auth.txt") == false
+        @test is_test_file("test_auth") == false
+        @test is_test_file("") == false
+    end
+
+    @testset "discover_test_files on empty directory" begin
+        mktempdir() do dir
+            files = discover_test_files(dir)
+            @test files == String[]
+        end
+    end
+
+    @testset "discover_test_files with only non-matching .jl files" begin
+        mktempdir() do dir
+            write(joinpath(dir, "helpers.jl"), "# not a test")
+            write(joinpath(dir, "utils.jl"), "# also not a test")
+            files = discover_test_files(dir)
+            @test files == String[]
+        end
+    end
 end

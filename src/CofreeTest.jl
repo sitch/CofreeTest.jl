@@ -10,7 +10,11 @@ by @maleadt and contributors.
 module CofreeTest
 
 include("Cofree.jl")
+include("Types.jl")
 
 export Cofree, extract, duplicate, extend, fmap, hoist, leaf, suite
+export Outcome, Pass, Fail, Error, Skip, Pending, Timeout
+export Metrics, CapturedIO, TestEvent
+export TestSpec, Scheduled, TestResult
 
 end # module

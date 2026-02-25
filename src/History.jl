@@ -16,11 +16,12 @@ function _history_path(mod::Module)
 end
 
 """Load historical test durations for a module."""
-function load_history(mod::Module)::Dict{String, Float64}
+function load_history(mod::Module)
     path = _history_path(mod)
     isfile(path) || return Dict{String, Float64}()
     try
-        open(deserialize, path)
+        result = open(deserialize, path)
+        result isa Dict{String, Float64} ? result : Dict{String, Float64}()
     catch
         Dict{String, Float64}()
     end

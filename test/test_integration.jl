@@ -40,4 +40,44 @@ using CofreeTest
         # Check if we get a meaningful result
         @test extract(result_tree.tail[2]) isa TestResult
     end
+
+    @testset "End-to-end: define → schedule → execute → format" begin
+        tree = @suite "e2e" begin
+            @testcase "math works" begin
+                @check 2 + 2 == 4
+                @check 3 * 3 == 9
+            end
+
+            @testcase "strings work" begin
+                @check "hello " * "world" == "hello world"
+            end
+
+            @suite "nested" begin
+                @testcase "deep test" begin
+                    @check true
+                end
+            end
+        end
+
+        io = IOBuffer()
+        result_tree = runtests(tree; io, color=false, formatter=:terminal)
+
+        # Verify result tree structure
+        @test extract(result_tree) isa TestResult
+        @test extract(result_tree).spec.name == "e2e"
+
+        # All leaf tests should pass
+        for child in result_tree.tail
+            r = extract(child)
+            if r.spec.body !== nothing
+                @test r.outcome isa Pass
+            end
+        end
+
+        # Verify terminal output
+        output = String(take!(io))
+        @test contains(output, "CofreeTest")
+        @test contains(output, "math works")
+        @test contains(output, "passed")
+    end
 end

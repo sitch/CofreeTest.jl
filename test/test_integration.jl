@@ -36,12 +36,10 @@ using CofreeTest
         result_tree = runtests(tree; io, color=false)
 
         @test extract(result_tree.tail[1]).outcome isa Pass
-        # The fail test — @check 1 == 2 emits AssertionFailed but body returns false
-        # Executor wraps in Pass(false) since no exception was thrown
+        # The fail test — @check 1 == 2 emits AssertionFailed, executor returns Fail
         result = extract(result_tree.tail[2])
         @test result isa TestResult
-        @test result.outcome isa Pass
-        @test result.outcome.value == false
+        @test result.outcome isa Fail
     end
 
     @testset "End-to-end: define → schedule → execute → format" begin

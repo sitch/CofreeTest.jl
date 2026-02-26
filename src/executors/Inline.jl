@@ -9,6 +9,10 @@ Useful for debugging and as the simplest executor implementation.
 struct InlineExecutor <: AbstractExecutor end
 
 function execute!(::InlineExecutor, spec::TestSpec, bus::EventBus)::Tuple{Outcome, Metrics, CapturedIO}
+    # Track assertion events to determine outcome
+    collector = CollectorSubscriber()
+    subscribe!(bus, collector)
+
     captured = IOCapture.capture() do
         mod = Module(gensym(spec.name))
 
@@ -37,8 +41,9 @@ function execute!(::InlineExecutor, spec::TestSpec, bus::EventBus)::Tuple{Outcom
             rss,
         )
 
-        # Check for assertion failures in events
-        (Pass(stats.value), metrics, CapturedIO("", ""))
+        # Check for assertion failures in collected events
+        outcome = _outcome_from_events(collector.events, stats.value)
+        (outcome, metrics, CapturedIO("", ""))
     end
 
     # If the body returned early (Error case), the result is already a tuple
@@ -50,4 +55,13 @@ function execute!(::InlineExecutor, spec::TestSpec, bus::EventBus)::Tuple{Outcom
 
     outcome, metrics, _ = result
     (outcome, metrics, CapturedIO(captured.output, ""))
+end
+
+function _outcome_from_events(events::Vector{TestEvent}, value)
+    for evt in events
+        if evt isa AssertionFailed
+            return Fail(evt.expr, evt.expected, evt.got, evt.source)
+        end
+    end
+    Pass(value)
 end

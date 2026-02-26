@@ -37,10 +37,8 @@ using CofreeTest: InlineExecutor, ProcessExecutor, TaskExecutor, execute!, Event
         exec = InlineExecutor()
         outcome, metrics, io = execute!(exec, spec, bus)
 
-        # The executor returns Pass because the body evaluates without throwing.
-        # The failure is recorded as an AssertionFailed event.
-        @test outcome isa Pass
-        @test outcome.value == false  # @check 1==2 returns false
+        # The executor detects assertion failures and returns Fail
+        @test outcome isa Fail
         @test any(e -> e isa AssertionFailed, collector.events)
     end
 

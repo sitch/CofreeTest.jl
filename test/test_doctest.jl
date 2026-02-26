@@ -31,7 +31,7 @@ julia> greet("Julia")
 "Hello, Julia!"
 ```
 """
-greet(name) = "Hello, $name!"
+greet(name) = "Hello, $(name)!"
 
 """
     add(a, b)
@@ -259,7 +259,7 @@ end # module DocTestFixture
             nothing,
             LineNumberNode(0, :unknown),
         )
-        body = CofreeTest._doctest_block_to_body(block)
+        body = CofreeTest._doctest_block_to_body(block, Main)
         @test body isa Expr
     end
 
@@ -269,7 +269,7 @@ end # module DocTestFixture
             nothing,
             LineNumberNode(0, :unknown),
         )
-        body = CofreeTest._doctest_block_to_body(block)
+        body = CofreeTest._doctest_block_to_body(block, Main)
         @test body isa Expr
     end
 

@@ -96,20 +96,23 @@ end
 # --- Body generation ---
 
 """
-    _doctest_block_to_body(block::DocTestBlock) -> Expr
+    _doctest_block_to_body(block::DocTestBlock, parent_mod::Module) -> Expr
 
 Convert a DocTestBlock into an Expr suitable for `TestSpec.body`.
 Each input/expected pair becomes a call to `_doctest_eval!` (or `_doctest_eval_setup!`
 for pairs with no expected output).
+
+The `parent_mod` reference is embedded directly in the expression so that
+doctests evaluate in a context where the parent module's names are available.
 """
-function _doctest_block_to_body(block::DocTestBlock)::Expr
+function _doctest_block_to_body(block::DocTestBlock, parent_mod::Module)::Expr
     stmts = Expr[]
     src = block.source
     for (input, expected) in block.pairs
         if isempty(expected)
-            push!(stmts, :(CofreeTest._doctest_eval_setup!(@__MODULE__, $(input))))
+            push!(stmts, :(CofreeTest._doctest_eval_setup!($(parent_mod), $(input))))
         else
-            push!(stmts, :(CofreeTest._doctest_eval!(@__MODULE__, $(input), $(expected), $(QuoteNode(src)))))
+            push!(stmts, :(CofreeTest._doctest_eval!($(parent_mod), $(input), $(expected), $(QuoteNode(src)))))
         end
     end
     Expr(:block, stmts...)
@@ -210,7 +213,7 @@ function discover_doctests(mod::Module; tags::Set{Symbol}=Set{Symbol}([:doctest]
         block_children = Cofree[]
         for (i, block) in enumerate(all_blocks)
             name = "$sym_name doctest #$i"
-            body = _doctest_block_to_body(block)
+            body = _doctest_block_to_body(block, mod)
             spec = TestSpec(name=name, tags=tags, source=block.source, body=body)
             push!(block_children, leaf(spec))
         end

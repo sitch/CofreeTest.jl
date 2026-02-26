@@ -102,7 +102,7 @@ end
 
 function bench_doctest_body_generation(blocks::Vector{DocTestBlock})
     for block in blocks
-        _doctest_block_to_body(block)
+        _doctest_block_to_body(block, Main)
     end
     nothing
 end

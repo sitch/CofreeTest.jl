@@ -18,4 +18,5 @@ using Test
     include("test_suite_macro.jl")
     include("test_compat.jl")
     include("test_integration.jl")
+    include("test_doctest.jl")
 end

@@ -278,6 +278,28 @@ function print_markdown_comparison(rows::Vector{BenchRow})
     println()
 end
 
+function print_doctest_table(rows::Vector{Tuple{String, Float64, Int, Int}})
+    println()
+    println("Doctest Overhead Analysis (100 iterations each)")
+    w = 75
+    println("=" ^ w)
+    println(rpad("Stage", 28), " | ",
+            rpad("Time", 14), " | ",
+            rpad("Allocs", 10), " | ",
+            "Memory")
+    println("-" ^ w)
+
+    for (name, time_ns, alloc, mem) in rows
+        println(rpad(name, 28), " | ",
+                rpad(format_time(time_ns), 14), " | ",
+                rpad(format_number(alloc), 10), " | ",
+                format_mem(mem))
+    end
+
+    println("=" ^ w)
+    println()
+end
+
 function print_markdown_scaling(points::Vector{ScalingPoint})
     println("## Scaling Analysis")
     println()

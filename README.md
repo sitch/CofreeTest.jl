@@ -90,6 +90,87 @@ Test.push_testset(ts)
 Test.pop_testset()
 ```
 
+## Doc Testing
+
+CofreeTest can discover and run code examples embedded in docstrings. Write standard `jldoctest` blocks (compatible with Documenter.jl) and CofreeTest runs them through the full pipeline with event streaming, formatters, and parallel execution.
+
+### Writing testable docstrings
+
+Add `jldoctest` fenced code blocks with `julia>` prompts to your docstrings:
+
+````julia
+"""
+    double(x)
+
+Double the input.
+
+```jldoctest
+julia> double(3)
+6
+
+julia> double(0)
+0
+```
+"""
+double(x) = 2x
+````
+
+Statements share state within a block — variables defined earlier are available later:
+
+````julia
+"""
+```jldoctest
+julia> x = 10
+10
+
+julia> x + 5
+15
+```
+"""
+````
+
+Lines without expected output act as setup:
+
+````julia
+"""
+```jldoctest
+julia> data = [1, 2, 3]
+
+julia> sum(data)
+6
+```
+"""
+````
+
+### Running doctests
+
+```julia
+using CofreeTest
+
+tree = discover_doctests(MyModule)
+runtests(tree)
+```
+
+Or use the `@doctest` macro inside a `@suite` to combine with regular tests:
+
+```julia
+tree = @suite "MyPackage" begin
+    @doctest MyModule
+
+    @testcase "unit test" begin
+        @check 1 + 1 == 2
+    end
+end
+
+runtests(tree)
+```
+
+Doctests support all the same options as regular tests — executors, formatters, filtering by tags:
+
+```julia
+runtests(tree; executor=:task, formatter=:terminal, verbose=true)
+```
+
 ## Architecture
 
 The core data structure is `Cofree{F, A}` -- a cofree comonad that pairs an annotation (`head :: A`) with a branching structure (`tail :: F`). Test trees are `Cofree{Vector, TestSpec}` where leaves have a non-nothing `body` field.

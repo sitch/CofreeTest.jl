@@ -180,7 +180,7 @@ function _suite_from_body(name, tags_expr, body, source)
         for stmt in body.args
             if stmt isa Expr && stmt.head == :macrocall
                 macname = stmt.args[1]
-                if macname == Symbol("@testcase") || macname == Symbol("@suite")
+                if macname in (Symbol("@testcase"), Symbol("@suite"), Symbol("@doctest"))
                     push!(children_exprs, stmt)
                 end
             end

@@ -30,6 +30,7 @@ include("Schedule.jl")
 include("Runner.jl")
 include("Compat.jl")
 include("History.jl")
+include("DocTest.jl")
 
 export Cofree, extract, duplicate, extend, fmap, hoist, leaf, suite
 export Outcome, Pass, Fail, Error, Skip, Pending, Timeout
@@ -42,5 +43,6 @@ export @check, @check_throws, @check_broken, @check_skip, @suite, @testcase, wit
 export AbstractExecutor, InlineExecutor, ProcessExecutor, TaskExecutor, execute!
 export AbstractFormatter, DotFormatter, TerminalFormatter, JSONFormatter, MultiFormatter
 export runtests
+export discover_doctests, @doctest
 
 end # module

@@ -8,6 +8,7 @@ using CofreeTest
 include(joinpath(@__DIR__, "generators.jl"))
 include(joinpath(@__DIR__, "cofreetest_runner.jl"))
 include(joinpath(@__DIR__, "stdlib_runner.jl"))
+include(joinpath(@__DIR__, "doctest_runner.jl"))
 
 const SUITE = BenchmarkGroup()
 
@@ -51,4 +52,17 @@ let tree = generate_flat_suite(100)
     for sym in [:dot, :json, :terminal]
         SUITE["formatters"][string(sym)] = @benchmarkable run_cofreetest_formatter($tree, $(QuoteNode(sym)))
     end
+end
+
+# --- doctest ---
+SUITE["doctest"] = BenchmarkGroup()
+let
+    doctest_mod = generate_doctest_module(100)
+    doctest_docstrings = generate_doctest_docstrings(100)
+    doctest_blocks = generate_doctest_blocks(100)
+
+    SUITE["doctest"]["parsing_100"]       = @benchmarkable bench_doctest_parsing($doctest_docstrings)
+    SUITE["doctest"]["body_gen_100"]      = @benchmarkable bench_doctest_body_generation($doctest_blocks)
+    SUITE["doctest"]["discovery_100"]     = @benchmarkable bench_doctest_discovery($doctest_mod)
+    SUITE["doctest"]["full_pipeline_100"] = @benchmarkable bench_doctest_full_pipeline($doctest_mod)
 end

@@ -27,6 +27,7 @@ include(joinpath(@__DIR__, "cofreetest_runner.jl"))
 include(joinpath(@__DIR__, "stdlib_runner.jl"))
 include(joinpath(@__DIR__, "table.jl"))
 include(joinpath(@__DIR__, "history.jl"))
+include(joinpath(@__DIR__, "doctest_runner.jl"))
 
 # --- CLI flags ---
 
@@ -291,6 +292,113 @@ if should_run(:formatters)
     ]
 
     print_formatter_table(formatter_rows)
+end
+
+# --- Phase 6: Doctest overhead analysis ---
+
+if should_run(:doctest)
+    println("Phase 6: Doctest overhead analysis")
+    println("=" ^ 60)
+
+    # Generate fixture modules at different scales
+    doctest_mod_100 = generate_doctest_module(100)
+    doctest_docstrings_100 = generate_doctest_docstrings(100)
+    doctest_blocks_100 = generate_doctest_blocks(100)
+    doctest_inputs_100 = [("$i * 2 + 0", "$(i * 2)") for i in 1:100]
+    meta_parse_inputs = ["$i * 2 + 0" for i in 1:100]
+
+    # Warmup
+    bench_doctest_parsing(doctest_docstrings_100[1:2])
+    bench_doctest_body_generation(doctest_blocks_100[1:2])
+    bench_doctest_discovery(generate_doctest_module(2))
+
+    # Micro-benchmarks
+    print("  Docstring parsing (100) ...")
+    parse_trial = @benchmark bench_doctest_parsing($doctest_docstrings_100)
+    println(" done")
+
+    print("  Body generation (100) ...")
+    bodygen_trial = @benchmark bench_doctest_body_generation($doctest_blocks_100)
+    println(" done")
+
+    print("  Discovery (100 fns) ...")
+    discovery_trial = @benchmark bench_doctest_discovery($doctest_mod_100)
+    println(" done")
+
+    print("  Meta.parse (100) ...")
+    metaparse_trial = @benchmark bench_meta_parse($meta_parse_inputs)
+    println(" done")
+
+    print("  _doctest_eval! (100) ...")
+    # Need event bus context for _doctest_eval!
+    eval_bus = CofreeTest.EventBus()
+    subscribe!(eval_bus, NullFormatter())
+    eval_trial = @benchmark CofreeTest.with_bus($eval_bus) do
+        bench_doctest_eval($doctest_inputs_100)
+    end
+    println(" done")
+
+    print("  Full pipeline (100 fns) ...")
+    full_doctest_trial = @benchmark bench_doctest_full_pipeline($doctest_mod_100)
+    println(" done")
+
+    # Print micro-benchmark table
+    doctest_phase_rows = Tuple{String, Float64, Int, Int}[
+        ("Docstring parsing (100)",  median(parse_trial).time,      Int(median(parse_trial).allocs),      Int(memory(parse_trial))),
+        ("Body generation (100)",    median(bodygen_trial).time,    Int(median(bodygen_trial).allocs),    Int(memory(bodygen_trial))),
+        ("Discovery (100 fns)",      median(discovery_trial).time,  Int(median(discovery_trial).allocs),  Int(memory(discovery_trial))),
+        ("Meta.parse (100)",         median(metaparse_trial).time,  Int(median(metaparse_trial).allocs),  Int(memory(metaparse_trial))),
+        ("_doctest_eval! (100)",     median(eval_trial).time,       Int(median(eval_trial).allocs),       Int(memory(eval_trial))),
+        ("Full pipeline (100 fns)",  median(full_doctest_trial).time, Int(median(full_doctest_trial).allocs), Int(memory(full_doctest_trial))),
+    ]
+
+    print_doctest_table(doctest_phase_rows)
+
+    # Derived estimates
+    full_t = median(full_doctest_trial).time
+    discovery_t = median(discovery_trial).time
+    parse_t = median(parse_trial).time
+    bodygen_t = median(bodygen_trial).time
+    eval_t = median(eval_trial).time
+
+    println("Derived estimates (as % of full pipeline):")
+    println("  Discovery:       $(format_time(discovery_t)) ($(round(discovery_t / full_t * 100; digits=1))%)")
+    println("  Parsing:         $(format_time(parse_t)) ($(round(parse_t / full_t * 100; digits=1))%)")
+    println("  Body generation: $(format_time(bodygen_t)) ($(round(bodygen_t / full_t * 100; digits=1))%)")
+    println("  Eval (runtime):  $(format_time(eval_t)) ($(round(eval_t / full_t * 100; digits=1))%)")
+    println("  Per-doctest:     $(format_time(full_t / 100))")
+    println()
+
+    # Scaling analysis
+    println("  Doctest scaling analysis:")
+    doctest_scaling_ns = [10, 50, 100, 500]
+    for n in doctest_scaling_ns
+        mod = generate_doctest_module(n)
+        print("    N=$n ...")
+        trial = @benchmark bench_doctest_full_pipeline($mod)
+        t = median(trial).time
+        per_test = t / n
+        println(" $(format_time(t)) total, $(format_time(per_test))/doctest")
+    end
+    println()
+
+    # Optional: Documenter.jl reference (uses CofreeTest package itself, not fixture module)
+    if has_documenter()
+        print("  Documenter.jl reference (CofreeTest pkg) ...")
+        try
+            documenter_trial = @benchmark bench_documenter_doctest(CofreeTest)
+            dt = median(documenter_trial).time
+            println(" done")
+
+            # Also benchmark CofreeTest's own doctest discovery for apples-to-apples
+            cofree_self_trial = @benchmark bench_doctest_full_pipeline(CofreeTest)
+            ct = median(cofree_self_trial).time
+            println("  Documenter.jl: $(format_time(dt)) vs CofreeTest: $(format_time(ct)) (on CofreeTest's own docs)")
+        catch e
+            println(" skipped ($(sprint(showerror, e)))")
+        end
+        println()
+    end
 end
 
 # --- Save & compare ---

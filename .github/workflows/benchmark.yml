@@ -1,0 +1,86 @@
+name: Benchmark
+
+on:
+  pull_request:
+    types: [labeled, opened, synchronize, reopened]
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: 'Phase to run (blank = all)'
+        required: false
+        default: ''
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  judge:
+    name: Judge PR
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'pull_request' &&
+      contains(github.event.pull_request.labels.*.name, 'run benchmark')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.11'
+
+      - uses: julia-actions/cache@v2
+
+      - uses: julia-actions/julia-buildpkg@v1
+
+      - name: Run benchmark judge
+        run: |
+          julia --project=benchmark -e '
+            using Pkg
+            Pkg.instantiate()
+            using PkgBenchmark
+            result = judge(
+              dirname(@__DIR__),
+              BenchmarkConfig(id="HEAD"),
+              BenchmarkConfig(id="origin/main");
+              script="benchmark/benchmarks.jl",
+            )
+            export_markdown(stdout, result)
+          '
+
+  snapshot:
+    name: Weekly Snapshot
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.11'
+
+      - uses: julia-actions/cache@v2
+
+      - uses: julia-actions/julia-buildpkg@v1
+
+      - name: Install benchmark dependencies
+        run: julia --project=benchmark -e 'using Pkg; Pkg.instantiate()'
+
+      - name: Run full benchmark suite
+        run: |
+          PHASE="${{ github.event.inputs.phase }}"
+          if [ -n "$PHASE" ]; then
+            julia --project=benchmark benchmark/run.jl --save --phase="$PHASE"
+          else
+            julia --project=benchmark benchmark/run.jl --save
+          fi
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ github.sha }}
+          path: benchmark/results/*.json
+          retention-days: 90

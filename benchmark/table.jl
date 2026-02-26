@@ -1,7 +1,7 @@
 # table.jl — Format benchmark results into comparison tables
 
 using BenchmarkTools: Trial, median, memory, allocs
-using Statistics: quantile, std, mean
+using Statistics: quantile, std, mean, median as stats_median
 
 # --- Data types ---
 
@@ -17,6 +17,9 @@ struct BenchRow
     cofree_p75::Float64
     cofree_cv::Float64
     n_tests::Int
+    cofree_ci_lo::Float64
+    cofree_ci_hi::Float64
+    outlier_count::Int
 end
 
 struct ScalingPoint
@@ -27,6 +30,32 @@ struct ScalingPoint
     stdlib_per_test_ns::Float64
     cofree_allocs_per_test::Float64
     cofree_mem_per_test::Float64
+end
+
+# --- Statistical functions ---
+
+function bootstrap_median_ci(times::Vector{Float64}; n::Int=1000, alpha::Float64=0.05)
+    length(times) < 2 && return (times[1], times[1])
+    k = length(times)
+    medians = Vector{Float64}(undef, n)
+    for i in 1:n
+        resample = [times[rand(1:k)] for _ in 1:k]
+        medians[i] = stats_median(resample)
+    end
+    sort!(medians)
+    lo_idx = max(1, round(Int, alpha / 2 * n))
+    hi_idx = min(n, round(Int, (1 - alpha / 2) * n))
+    (medians[lo_idx], medians[hi_idx])
+end
+
+function tukey_outlier_count(times::Vector{Float64})
+    length(times) < 4 && return 0
+    q1 = quantile(times, 0.25)
+    q3 = quantile(times, 0.75)
+    iqr = q3 - q1
+    lo = q1 - 1.5 * iqr
+    hi = q3 + 1.5 * iqr
+    count(t -> t < lo || t > hi, times)
 end
 
 # --- Formatting helpers ---
@@ -88,7 +117,9 @@ function make_row(scenario::String, cofree_trial::Trial, stdlib_trial::Trial; n_
     p75 = length(times) > 1 ? quantile(times, 0.75) : ct
     m = mean(times)
     cv = m > 0 && length(times) > 1 ? std(times) / m * 100 : 0.0
-    BenchRow(scenario, ct, st, ca, sa, cm, sm, p25, p75, cv, n_tests)
+    ci_lo, ci_hi = bootstrap_median_ci(times)
+    outliers = tukey_outlier_count(times)
+    BenchRow(scenario, ct, st, ca, sa, cm, sm, p25, p75, cv, n_tests, ci_lo, ci_hi, outliers)
 end
 
 function make_scaling_point(n::Int, cofree_trial::Trial, stdlib_trial::Trial)
@@ -103,13 +134,13 @@ end
 
 function print_comparison_table(rows::Vector{BenchRow})
     println()
-    w = 115
+    w = 145
     println("=" ^ w)
     println(rpad("Scenario", 26), " | ",
             rpad("CofreeTest", 12), " | ",
             rpad("Test stdlib", 12), " | ",
             rpad("Ratio", 8), " | ",
-            rpad("p25-p75", 20), " | ",
+            rpad("95% CI", 28), " | ",
             rpad("CV", 6), " | ",
             "Memory")
     println("-" ^ w)
@@ -118,16 +149,19 @@ function print_comparison_table(rows::Vector{BenchRow})
         ct = format_time(row.cofree_time_ns)
         st = format_time(row.stdlib_time_ns)
         ratio = ratio_str(row.cofree_time_ns, row.stdlib_time_ns)
-        iqr = "$(format_time(row.cofree_p25))–$(format_time(row.cofree_p75))"
+        ci = row.cofree_ci_lo > 0 ?
+            "[$(format_time(row.cofree_ci_lo)), $(format_time(row.cofree_ci_hi))]" :
+            "N/A"
         cv = "$(round(row.cofree_cv; digits=1))%"
         mem = "$(format_mem(row.cofree_memory)) / $(format_mem(row.stdlib_memory))"
+        outlier_flag = row.outlier_count > 0 ? " [$(row.outlier_count) outliers]" : ""
         println(rpad(row.scenario, 26), " | ",
                 rpad(ct, 12), " | ",
                 rpad(st, 12), " | ",
                 rpad(ratio, 8), " | ",
-                rpad(iqr, 20), " | ",
+                rpad(ci, 28), " | ",
                 rpad(cv, 6), " | ",
-                mem)
+                mem, outlier_flag)
     end
 
     println("=" ^ w)
@@ -228,15 +262,18 @@ function print_markdown_comparison(rows::Vector{BenchRow})
     println()
     println("## CofreeTest vs Test stdlib")
     println()
-    println("| Scenario | CofreeTest | Test stdlib | Ratio | CV | Memory (C/T) |")
-    println("|----------|-----------|-------------|-------|----|-------------|")
+    println("| Scenario | CofreeTest | Test stdlib | Ratio | 95% CI | CV | Memory (C/T) |")
+    println("|----------|-----------|-------------|-------|--------|----|-------------|")
     for row in rows
         ct = format_time(row.cofree_time_ns)
         st = format_time(row.stdlib_time_ns)
         ratio = ratio_str(row.cofree_time_ns, row.stdlib_time_ns)
+        ci = row.cofree_ci_lo > 0 ?
+            "[$(format_time(row.cofree_ci_lo)), $(format_time(row.cofree_ci_hi))]" :
+            "N/A"
         cv = "$(round(row.cofree_cv; digits=1))%"
         mem = "$(format_mem(row.cofree_memory)) / $(format_mem(row.stdlib_memory))"
-        println("| $(row.scenario) | $ct | $st | $ratio | $cv | $mem |")
+        println("| $(row.scenario) | $ct | $st | $ratio | $ci | $cv | $mem |")
     end
     println()
 end

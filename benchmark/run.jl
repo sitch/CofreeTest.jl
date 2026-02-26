@@ -183,6 +183,21 @@ if should_run(:scaling)
     else
         print_scaling_table(scaling_points)
     end
+
+    # Complexity analysis: fit per-test time vs log10(N)
+    if length(scaling_points) >= 4
+        ns = [Float64(p.n) for p in scaling_points]
+        ts = [p.cofree_per_test_ns for p in scaling_points]
+        log_ns = log10.(ns)
+        mean_log_n = mean(log_ns)
+        mean_t = mean(ts)
+        slope = sum((log_ns[i] - mean_log_n) * (ts[i] - mean_t) for i in eachindex(ns)) /
+                sum((log_ns[i] - mean_log_n)^2 for i in eachindex(ns))
+        pct_per_decade = slope / mean_t * 100
+        println("Complexity: per-test cost slope = $(round(pct_per_decade; digits=1))%/decade of N")
+        println("  (0% = perfect O(N), positive = super-linear, negative = amortization)")
+        println()
+    end
 end
 
 # --- Phase 4: Per-phase instrumentation ---

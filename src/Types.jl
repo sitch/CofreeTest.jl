@@ -63,6 +63,12 @@ abstract type TestEvent end
     teardown::Union{Expr, Nothing} = nothing
 end
 
+function Base.show(io::IO, s::TestSpec)
+    kind = s.body === nothing ? "suite" : "test"
+    tags_str = isempty(s.tags) ? "" : " " * join(sort(collect(s.tags)), ",")
+    print(io, "TestSpec(\"", s.name, "\"", tags_str, " [", kind, "])")
+end
+
 """Scheduled test — spec plus execution plan."""
 struct Scheduled
     spec::TestSpec
@@ -79,4 +85,14 @@ struct TestResult
     metrics::Metrics
     events::Vector{TestEvent}
     output::CapturedIO
+end
+
+function Base.show(io::IO, r::TestResult)
+    status = r.outcome isa Pass ? "✓" :
+             r.outcome isa Fail ? "✗" :
+             r.outcome isa Error ? "!" :
+             r.outcome isa Skip ? "⊘" :
+             r.outcome isa Pending ? "…" :
+             r.outcome isa Timeout ? "⏱" : "?"
+    print(io, status, " ", r.spec.name)
 end

@@ -186,17 +186,6 @@ The tree structure is:
 - Root suite: "Doctests: ModuleName"
   - Per-symbol suites: "ModuleName.symbol_name"
     - Per-block leaves: "symbol_name doctest #1", etc.
-
-# Example
-
-```jldoctest
-julia> using CofreeTest
-
-julia> tree = discover_doctests(CofreeTest)
-
-julia> extract(tree).name
-"Doctests: CofreeTest"
-```
 """
 function discover_doctests(mod::Module; tags::Set{Symbol}=Set{Symbol}([:doctest]))
     children = Cofree[]

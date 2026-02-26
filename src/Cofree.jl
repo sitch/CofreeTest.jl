@@ -24,6 +24,15 @@ end
     extract(c::Cofree) -> A
 
 Get the annotation at this node. The counit of the comonad.
+
+```jldoctest
+julia> using CofreeTest
+
+julia> c = leaf(:hello)
+
+julia> extract(c)
+:hello
+```
 """
 extract(c::Cofree) = c.head
 
@@ -61,6 +70,22 @@ extend(f, c::Cofree) = Cofree(f(c), fmap(w -> extend(f, w), c.tail))
 
 Natural transformation: transform annotations while preserving tree structure.
 `f` is applied to each `head` value.
+
+```jldoctest
+julia> using CofreeTest
+
+julia> tree = suite(1, [leaf(2), leaf(3)])
+
+julia> doubled = hoist(x -> 2x, tree)
+
+julia> extract(doubled)
+2
+
+julia> extract.(doubled.tail)
+2-element Vector{Int64}:
+ 4
+ 6
+```
 """
 hoist(f, c::Cofree) = Cofree(f(c.head), fmap(child -> hoist(f, child), c.tail))
 
@@ -68,6 +93,18 @@ hoist(f, c::Cofree) = Cofree(f(c.head), fmap(child -> hoist(f, child), c.tail))
     leaf(a) -> Cofree
 
 Create a leaf node (no children) with annotation `a`.
+
+```jldoctest
+julia> using CofreeTest
+
+julia> node = leaf(42)
+
+julia> extract(node)
+42
+
+julia> isempty(node.tail)
+true
+```
 """
 leaf(a) = Cofree(a, Cofree[])
 
@@ -75,5 +112,22 @@ leaf(a) = Cofree(a, Cofree[])
     suite(a, children::Vector) -> Cofree
 
 Create a suite node with annotation `a` and child nodes.
+
+```jldoctest
+julia> using CofreeTest
+
+julia> tree = suite(:root, [leaf(:a), leaf(:b)])
+
+julia> extract(tree)
+:root
+
+julia> length(tree.tail)
+2
+
+julia> extract.(tree.tail)
+2-element Vector{Symbol}:
+ :a
+ :b
+```
 """
 suite(a, children::Vector) = Cofree(a, children)

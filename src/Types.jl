@@ -32,6 +32,13 @@ struct Timeout <: Outcome
     actual::Float64
 end
 
+Base.show(io::IO, ::Pass) = print(io, "Pass")
+Base.show(io::IO, ::Fail) = print(io, "Fail")
+Base.show(io::IO, o::Error) = print(io, "Error(", typeof(o.exception).name.name, ")")
+Base.show(io::IO, o::Skip) = print(io, "Skip(\"", o.reason, "\")")
+Base.show(io::IO, o::Pending) = print(io, "Pending(\"", o.reason, "\")")
+Base.show(io::IO, o::Timeout) = print(io, "Timeout(", o.limit, "s)")
+
 # --- Supporting types ---
 
 struct Metrics

@@ -42,7 +42,7 @@ export TestFilter
 export @check, @check_throws, @check_broken, @check_skip, @suite, @testcase, with_bus
 export AbstractExecutor, InlineExecutor, ProcessExecutor, TaskExecutor, execute!
 export AbstractFormatter, DotFormatter, TerminalFormatter, JSONFormatter, MultiFormatter
-export runtests
+export runtests, test_summary, TestSummary
 export discover_doctests, @doctest
 
 end # module

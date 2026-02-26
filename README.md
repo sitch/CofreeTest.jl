@@ -31,6 +31,26 @@ end
 runtests(tree)
 ```
 
+Test trees display as readable hierarchies in the REPL:
+
+```
+"my app" [suite]
+├─ "arithmetic" [test]
+├─ "strings" [test]
+└─ "edge cases" [suite]
+   └─ "empty" [test]
+```
+
+After execution, results show pass/fail status:
+
+```
+✓ my app
+├─ ✓ arithmetic
+├─ ✓ strings
+└─ ✓ edge cases
+   └─ ✓ empty
+```
+
 ## Assertions
 
 CofreeTest provides `@check` macros that emit structured events instead of throwing on failure:
@@ -184,7 +204,7 @@ TestSpec -> Scheduled -> TestResult
 Each stage preserves the tree shape via `hoist`:
 
 ```julia
-scheduled = hoist(spec -> Scheduled(spec, :inline, 0.0), tree)
+scheduled = hoist(spec -> Scheduled(spec, :inline, nothing, 0.0), tree)
 ```
 
 Events flow through an `EventBus` with pluggable `Subscriber`s. Formatters implement `Subscriber` to render output as tests execute.
